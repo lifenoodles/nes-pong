@@ -1,52 +1,56 @@
 ;Completely 100% original NES game
 ;Not infringing on anything already existing
-; - Donagh Hatton 04/02/2012
+
+; Written by Donagh Hatton 04/02/2012
+; donaghhatton (at) gmail.com
+; Do whatever you want with this and
+; please let me know if you found it useful!
 
   .inesprg 1   ; 1x 16KB PRG code
   .ineschr 1   ; 1x  8KB CHR data
   .inesmap 0   ; mapper 0 = NROM, no bank swapping
   .inesmir 1   ; background mirroring
-  
+
 ;;;;;;;;;;;;;;;
 
   .rsset $0000
-  
-controller1	.rs 1
-controller2	.rs 1
-score1		.rs 1
-score2		.rs 1
-paddle1 	.rs 1
-paddle2		.rs 1
-ballDirX	.rs 1
-ballDirY	.rs 1
-ballXspeed	.rs 1
-ballYspeed	.rs 1
-ballSpeed	.rs 1
-gameState	.rs 1
-numBounces	.rs 1
-ballState	.rs 1 ;0 = moving, 1/2 = waiting for player
-random		.rs 1
-resetFlag	.rs 1
-canCollide	.rs 1
-numPlayers	.rs 1
-aiWaitFrame	.rs 1
-menuWait	.rs 1
-  
-WALL_LEFT	= $08
-WALL_RIGHT	= $F8 ;see if this works out
-WALL_TOP	= $17
-WALL_BOTTOM	= $D8
-BALL_X		= $0203
-BALL_Y		= $0200
-PADDLE1_X	= $08
-PADDLE2_X	= $F0
-PADDLE_HEIGHT	= $20
-BALL_DIST	= $08
-WINNING_SCORE	= $0A
-  
+
+controller1 .rs 1
+controller2 .rs 1
+score1      .rs 1
+score2      .rs 1
+paddle1     .rs 1
+paddle2     .rs 1
+ballDirX    .rs 1
+ballDirY    .rs 1
+ballXspeed  .rs 1
+ballYspeed  .rs 1
+ballSpeed   .rs 1
+gameState   .rs 1
+numBounces  .rs 1
+ballState   .rs 1 ;0 = moving, 1/2 = waiting for player
+random      .rs 1
+resetFlag   .rs 1
+canCollide  .rs 1
+numPlayers  .rs 1
+aiWaitFrame .rs 1
+menuWait    .rs 1
+
+WALL_LEFT   = $08
+WALL_RIGHT  = $F8 ;see if this works out
+WALL_TOP    = $17
+WALL_BOTTOM = $D8
+BALL_X      = $0203
+BALL_Y      = $0200
+PADDLE1_X   = $08
+PADDLE2_X   = $F0
+PADDLE_HEIGHT   = $20
+BALL_DIST   = $08
+WINNING_SCORE   = $0A
+
   .bank 0
-  .org $C000 
-  
+  .org $C000
+
 RESET:
   SEI          ; disable IRQs
   CLD          ; disable decimal mode
@@ -58,9 +62,9 @@ RESET:
   ;STX $4010    ; disable DMC IRQs
   LDA #%0001000
   STA $2000
-  
+
   JSR vblankwait
-  
+
 clrmem:
   LDA #$00
   STA $0000, x
@@ -74,9 +78,9 @@ clrmem:
   STA $0200, x    ;move all sprites off screen
   INX
   BNE clrmem
-  
+
   JSR vblankwait
-  
+
   LoadSprites:
   LDX #$00
 LoadSpritesLoop:
@@ -85,7 +89,7 @@ LoadSpritesLoop:
   INX
   CPX #$24
   BNE LoadSpritesLoop
-  
+
 LoadPalettes:
   LDA $2002    ; read PPU status to reset the high/low latch
   LDA #$3F
@@ -97,26 +101,26 @@ LoadPalettesLoop:
   LDA palette, X        ;load palette byte
   STA $2007             ;write to PPU
   INX                   ;set index to next byte
-  CPX #$20            
+  CPX #$20
   BNE LoadPalettesLoop  ;if x = $20, 32 bytes copied, all done
-  
+
   LDA #$00 ;start game at main menu, at player1
   STA gameState
   STA numPlayers
   STA menuWait
- 
+
   JSR LoadStateMainMenu
 
 Forever: ;cycle through numbers so we can use one as a "random" byte
   INC random
   JMP Forever     ;infinite loop except when NMI
-  
+
 NMI:
   LDA #$00   ; DMA all the sprite data in from 0200
   STA $2003  ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014  ; start DMA
-  
+
   LDA gameState
   CMP #$01
   BNE NotGameState1
@@ -127,7 +131,7 @@ NMI:
   JSR MoveBall
   JSR BallCollisionDetection
   JMP MainLoopDone
-NotGameState1: 
+NotGameState1:
   CMP #$00
   BNE NotGameState0
   JSR ReadController
@@ -149,23 +153,23 @@ MoveBall:
   BNE MoveBallWithPaddle2
   ;else move ball with paddle1
   LDA #PADDLE1_X
-  CLC 
+  CLC
   ADC #BALL_DIST
   STA BALL_X
   LDA paddle1
-  CLC 
+  CLC
   ADC #$0C
   STA BALL_Y
   JMP MoveBallFinished
 MoveBallWithPaddle2:
   LDA #PADDLE2_X
-  SEC 
+  SEC
   SBC #BALL_DIST
   ;SEC
   ;SBC #$08
   STA BALL_X
   LDA paddle2
-  CLC 
+  CLC
   ADC #$0C
   STA BALL_Y
   JMP MoveBallFinished
@@ -196,10 +200,10 @@ MoveBallDown:
   CLC
   ADC ballYspeed
   STA BALL_Y
-MoveBallFinished:  
+MoveBallFinished:
   RTS
 
-;(SUB)  
+;(SUB)
 BallCollisionDetection:
   ;check for top wall collision
   LDA BALL_Y
@@ -275,7 +279,7 @@ DontJump3:
   CMP BALL_Y
   BCS DontJump4
   JMP CheckRightPaddle
-DontJump4:  
+DontJump4:
   ;ball has hit left paddle, sort it out
   ;reverse x direction, always do this
   JSR PlayBeep3
@@ -285,10 +289,10 @@ DontJump4:
   STA ballDirX
   ;set left paddle immune to collision
   LDA #$02
-  STA canCollide  
+  STA canCollide
   ;check if ball has hit top section
   LDA paddle1
-  CLC 
+  CLC
   ADC #$0C
   CMP BALL_Y
   BCC BallNotHitTopSectionOfLeft
@@ -323,7 +327,7 @@ BallNotHitTopOfLeft:
   JMP BallCollisionDone
 BallNotHitTopSectionOfLeft:
   LDA paddle1
-  CLC 
+  CLC
   ADC #PADDLE_HEIGHT
   SEC
   SBC #$18
@@ -402,10 +406,10 @@ DontJump8:
   STA ballDirX
   ;set right paddle immune to collision
   LDA #$01
-  STA canCollide  
+  STA canCollide
   ;check if ball has hit top section
   LDA paddle2
-  CLC 
+  CLC
   ADC #$0C
   CMP BALL_Y
   BCC BallNotHitTopSectionOfRight
@@ -439,7 +443,7 @@ BallNotHitTopOfRight:
   JMP BallCollisionDone
 BallNotHitTopSectionOfRight:
   LDA paddle2
-  CLC 
+  CLC
   ADC #PADDLE_HEIGHT
   SEC
   SBC #$18
@@ -494,14 +498,14 @@ NotSpeed2:
   STA ballXspeed
 NotSpeed3:
   RTS
-  
+
 ;(SUB)
 ReadController:
   LDA #$01 ;latch controllers so we can read from them
   STA $FF ;store $01 in 00FF so we can AND with it
   STA $4016
   LDA #$00
-  STA $4016  
+  STA $4016
   ;start reading bytes from controllers
   ;we only care about the last bit in each case
   LDA $4016 ;p1 - A
@@ -509,7 +513,7 @@ ReadController:
   ASL A
   STA controller1
   LDX #$00
-ReadController1Loop:  
+ReadController1Loop:
   LDA $4016 ;p1 - B, Sel, Sta, U, D, L
   AND $FF
   ORA controller1
@@ -522,14 +526,14 @@ ReadController1Loop:
   AND $FF
   ORA controller1
   STA controller1
-  
+
   ;read second controller
   LDA $4017 ;p2 - A
   AND $FF
   ASL A
   STA controller2
   LDX #$00
-ReadController2Loop: 
+ReadController2Loop:
   LDA $4017 ;p2 - B, Sel, Sta, U, D, L
   AND $FF
   ORA controller2
@@ -538,15 +542,15 @@ ReadController2Loop:
   INX
   CPX #$06
   BNE ReadController2Loop
-  
+
   LDA $4017 ;p2 - Right
   AND $FF
   ORA controller2
   STA controller2
-  
+
   RTS
 
-;(SUB)  
+;(SUB)
 HandleInput:
   ; bits in controller are a,b,sel,sta,u,d,l,r
   LDA controller1
@@ -556,7 +560,7 @@ HandleInput:
   SEC
   SBC #$02
   STA paddle1
-P1CheckDownPressed:  
+P1CheckDownPressed:
   LDA controller1
   AND #%00000100 ; check if down pressed
   BEQ P1CheckAPressed
@@ -564,7 +568,7 @@ P1CheckDownPressed:
   CLC
   ADC #$02
   STA paddle1
-P1CheckAPressed:  
+P1CheckAPressed:
   LDA controller1
   AND #%10000000 ; check if down pressed
   BEQ Control1CheckDone
@@ -585,7 +589,7 @@ P1CheckAPressed:
   ;make paddle1 immune to collision
   LDA #$02
   STA canCollide
-Control1CheckDone:  
+Control1CheckDone:
   LDA numPlayers
   BNE Player2CheckControls
   JSR ControlAI
@@ -598,7 +602,7 @@ Player2CheckControls:
   SEC
   SBC #$02
   STA paddle2
-P2CheckDownPressed:  
+P2CheckDownPressed:
   LDA controller2
   AND #%00000100 ; check if down pressed
   BEQ P2CheckAPressed
@@ -606,7 +610,7 @@ P2CheckDownPressed:
   CLC
   ADC #$02
   STA paddle2
-P2CheckAPressed:  
+P2CheckAPressed:
   LDA controller2
   AND #%10000000 ; check if down pressed
   BEQ Control2CheckDone
@@ -630,14 +634,14 @@ P2CheckAPressed:
 Control2CheckDone:
   RTS
 
-;(SUB)  
+;(SUB)
 ControlAI:
   LDA ballSpeed
   CMP #$01
   BNE SpeedOk
   CLC
   ADC #$01
-SpeedOk:  
+SpeedOk:
   STA $FD
   LDA ballState
   SEC
@@ -662,7 +666,7 @@ SpeedOk:
   JMP AImoveDone
 AIownershipCheckDone:
   LDA BALL_Y
-  CLC 
+  CLC
   ADC #$04
   STA $FE
   LDA paddle2
@@ -678,7 +682,7 @@ AIownershipCheckDone:
   CMP #$03
   BCC AImoveDone
   LDA paddle2
-  CLC 
+  CLC
   ADC $FD
   STA paddle2
   JMP AImoveDone
@@ -692,9 +696,9 @@ AImoveUp:
   SEC
   SBC $FD
   STA paddle2
-AImoveDone:  
+AImoveDone:
   RTS
-  
+
 ;(SUB)
 PaddleCollisionDetection:
   ;paddle 1 too high
@@ -736,18 +740,18 @@ Paddle2NotTooHigh:
   SEC
   SBC #PADDLE_HEIGHT
   STA paddle2
-Paddle2NotTooLow:   
+Paddle2NotTooLow:
   RTS
-  
+
 ;(SUB)
 SetPaddlePositions:
   LDA paddle1
   LDX #$04
-  LDY #$00  
-Paddle1PositionLoop: 
+  LDY #$00
+Paddle1PositionLoop:
   STA BALL_Y, X
   CLC
-  ADC #$08 
+  ADC #$08
   INX
   INX
   INX
@@ -755,13 +759,13 @@ Paddle1PositionLoop:
   INY
   CPY #$04
   BNE Paddle1PositionLoop
-  
+
   LDA paddle2
-  LDY #$00  
+  LDY #$00
 Paddle2PositionLoop:
   STA BALL_Y, X
   CLC
-  ADC #$08 
+  ADC #$08
   INX
   INX
   INX
@@ -770,8 +774,8 @@ Paddle2PositionLoop:
   CPY #$04
   BNE Paddle2PositionLoop
   RTS
-  
-;(SUB)  
+
+;(SUB)
 UpdateScores:
   LDA #$20
   STA $2006
@@ -779,18 +783,18 @@ UpdateScores:
   STA $2006
   LDA score1
   STA $2007
-  
+
   LDA #$20
   STA $2006
   LDA #$3E
   STA $2006
   LDA score2
   STA $2007
- 
-  LDA #$00 
-  STA $2005 
+
+  LDA #$00
   STA $2005
-  
+  STA $2005
+
   LDA score1
   CMP #WINNING_SCORE
   BNE Player1ScoreChecked
@@ -800,9 +804,9 @@ Player1ScoreChecked:
   CMP #WINNING_SCORE
   BNE ScoresUpdated
   JSR LoadStateWinScreen
-ScoresUpdated:  
+ScoresUpdated:
   RTS
-  
+
 ;initialise game variables
 ;(SUB)
 InitialSetup:
@@ -825,7 +829,7 @@ InitialSetup:
   STA paddle2
   STA aiWaitFrame
   RTS
-  
+
 HandleInputEnd:
   LDA controller1
   BEQ NoInputs
@@ -835,7 +839,7 @@ HandleInputEnd:
   JSR LoadStateMainMenu
 NoInputs:
   RTS
-  
+
 HandleInputMenu:
   LDA menuWait
   BEQ MenuDoneWaiting
@@ -864,18 +868,18 @@ MenuInputDown:
   STA $2006
   LDA #$24
   STA $2007
- 
+
   LDA #$22
   STA $2006
   LDA #$8A
   STA $2006
   LDA #$D7
   STA $2007
-  
-  LDA #$00 
-  STA $2005 
+
+  LDA #$00
   STA $2005
-MenuInputUp:  
+  STA $2005
+MenuInputUp:
   LDA controller1
   AND #%00001000
   BEQ MenuInputDone
@@ -891,20 +895,20 @@ MenuInputUp:
   STA $2006
   LDA #$D7
   STA $2007
- 
+
   LDA #$22
   STA $2006
   LDA #$8A
   STA $2006
   LDA #$24
   STA $2007
-  
-  LDA #$00 
-  STA $2005 
+
+  LDA #$00
+  STA $2005
   STA $2005
 MenuInputDone:
-  RTS  
-  
+  RTS
+
 GoalScore:
   LDA canCollide
   SEC
@@ -918,7 +922,7 @@ GoalPlayer2:
   INC score2
   LDA #$01
   STA ballState
-PlayerScoreAdjusted:  
+PlayerScoreAdjusted:
   JSR UpdateScores
   LDA #$01
   STA ballSpeed
@@ -927,7 +931,7 @@ PlayerScoreAdjusted:
   LDA #$00
   STA numBounces
   RTS
-  
+
 ;(SUB)
 PlayBeep1:
   LDA #%10011010
@@ -936,8 +940,8 @@ PlayBeep1:
   STA $4002
   LDA #%10000000
   STA $4003
-  RTS  
-  
+  RTS
+
 ;(SUB)
 PlayBeep2:
   LDA #%10011010
@@ -946,7 +950,7 @@ PlayBeep2:
   STA $4002
   LDA #%10000000
   STA $4003
-  RTS  
+  RTS
 
 ;(SUB)
 PlayBeep3:
@@ -958,22 +962,22 @@ PlayBeep3:
   STA $4002
   LDA #%10000000
   STA $4003
-Sound3Done:  
-  RTS    
-  
-;(SUB)  
+Sound3Done:
+  RTS
+
+;(SUB)
 vblankwait:       ; First wait for vblank to make sure PPU is ready
   BIT $2002
   BPL vblankwait
   RTS
-  
-;(SUB)  
+
+;(SUB)
 LoadStateMainMenu:
   LDA #$00
   LDA #$00
   STA $2000
   STA $2001
-  
+
   LDA $2002
   LDA #$20
   STA $2006
@@ -989,7 +993,7 @@ LoadBackgroundMenuLoop1:
   INX
   CPX #$00
   BNE LoadBackgroundMenuLoop1
-  
+
   ;9th row
 LoadBackgroundMenuLoop2:
   LDA #$24
@@ -997,7 +1001,7 @@ LoadBackgroundMenuLoop2:
   INX
   CPX #$20
   BNE LoadBackgroundMenuLoop2
-  
+
   ;10th row, title
   LDX #$00
 LoadBackgroundMenuLoop3:
@@ -1006,7 +1010,7 @@ LoadBackgroundMenuLoop3:
   INX
   CPX #$20
   BNE LoadBackgroundMenuLoop3
-  
+
   ;rows 11 - 18
   LDX #$00
 LoadBackgroundMenuLoop4:
@@ -1024,7 +1028,7 @@ LoadBackgroundMenuLoop5:
   INX
   CPX #$60
   BNE LoadBackgroundMenuLoop5
-  
+
   ;rows 22 - 29
   LDX #$00
 LoadBackgroundMenuLoop6:
@@ -1032,8 +1036,8 @@ LoadBackgroundMenuLoop6:
   STA $2007
   INX
   CPX #$00
-  BNE LoadBackgroundMenuLoop6  
-  
+  BNE LoadBackgroundMenuLoop6
+
   ;rows 30-32
   LDX #$00
 LoadBackgroundMenuLoop7:
@@ -1041,8 +1045,8 @@ LoadBackgroundMenuLoop7:
   STA $2007
   INX
   CPX #$60
-  BNE LoadBackgroundMenuLoop7  
-  
+  BNE LoadBackgroundMenuLoop7
+
   LDA $2002
   LDA #$23
   STA $2006
@@ -1055,25 +1059,25 @@ LoadAttributeLoopMenu:
   INX
   CPX #$40
   BNE LoadAttributeLoopMenu
-  
+
   LDA #$00
   STA $2005
   STA $2005
-  
+
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0
   STA $2000
 
   LDA #%00001110   ; enable background, no sprites
   STA $2001
-  
+
   LDA $DE
   RTS
-  
+
 LoadStateWinScreen:
   LDA #$00
   STA $2000
   STA $2001
-  
+
   LDA $2002
   LDA #$20
   STA $2006
@@ -1128,7 +1132,7 @@ LoadBackgroundEndLoop6:
   INX
   CPX #$C0
   BNE LoadBackgroundEndLoop6
-  
+
   ;write 2 instead of 1 in event player2 has won
   LDA score2
   CMP #WINNING_SCORE
@@ -1143,23 +1147,23 @@ Player2NotWon:
   LDA #$00
   STA $2005
   STA $2005
-  
+
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0
   STA $2000
 
   LDA #%00001110   ; enable background, no sprites
   STA $2001
-  
+
   LDA #$02
   STA gameState
-  RTS  
+  RTS
 
 LoadStateInGame:
   LDA #$00
   STA $2000
   STA $2001
   JSR InitialSetup
-  
+
   LDA $2002
   LDA #$20
   STA $2006
@@ -1190,7 +1194,7 @@ LoadBackgroundLoop4: ; Last loop only runs 192 times to not run into
   INX
   CPX #$C0
   BNE LoadBackgroundLoop4
-  
+
 LoadAttribute:
   LDA $2002
   LDA #$23
@@ -1204,34 +1208,34 @@ LoadAttributeLoop:
   INX
   CPX #$40
   BNE LoadAttributeLoop
-  
+
   LDA #$00
   STA $2005
   STA $2005
-  
+
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0
   STA $2000
 
   LDA #%00011110   ; enable sprites, background etc.
   STA $2001
-  RTS  
-;;;;;;;;;;;;;;  
-  
+  RTS
+;;;;;;;;;;;;;;
+
   .bank 1
   .org $E000
 palette:
-  ;bg palette 
+  ;bg palette
   .db $0F,$31,$32,$33,$0F,$30,$30,$30,$0F,$39,$3A,$3B,$0F,$3D,$3E,$0F
   ;sprite palette
   .db $0F,$30,$20,$10,$0F,$30,$30,$30,$0F,$1C,$15,$14,$0F,$02,$38,$3C
-  
+
 winText:
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$19,$15,$0A,$22,$0E,$1B,$24 
-  .db $01,$24,$20,$12,$17,$1C,$2B,$24,$24,$24,$24,$24,$24,$24,$24,$24 
-  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$19,$15,$0A,$22,$0E,$1B,$24
+  .db $01,$24,$20,$12,$17,$1C,$2B,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
 rngText:
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$10,$0A,$16,$0E,$24
-  .db $0B,$22,$24,$0D,$11,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24 
+  .db $0B,$22,$24,$0D,$11,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
 titleText:
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$1D,$0E,$17,$17,$12,$1C,$24
@@ -1244,113 +1248,113 @@ menuText:
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$02,$24,$19,$15
   .db $0A,$22,$0E,$1B,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
-  
-sprites: 
+
+sprites:
      ;y,tile,attr,x
-  .db $00,$75,$01,$00 ;ball 
-  .db $00,$86,$01,$08 ;left_paddle_top 
+  .db $00,$75,$01,$00 ;ball
+  .db $00,$86,$01,$08 ;left_paddle_top
   .db $00,$86,$01,$08 ;left_paddle_middle1
-  .db $00,$86,$01,$08 ;left_paddle_middle2 
+  .db $00,$86,$01,$08 ;left_paddle_middle2
   .db $00,$86,$01,$08 ;left_paddle_bottom
-  .db $00,$86,$01,$F0 ;right_paddle_top 
+  .db $00,$86,$01,$F0 ;right_paddle_top
   .db $00,$86,$01,$F0 ;right_paddle_middle1
   .db $00,$86,$01,$F0 ;right_paddle_middle2
   .db $00,$86,$01,$F0 ;right_paddle_bottom
-  
+
 nametable1: ;backgrounds
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$00,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 2
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$00,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$00,$24
 
   .db $25,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7  ;;row 3
-  .db $D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$26  
+  .db $D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$26
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 4
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 5
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 6
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24 
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 7
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
 nametable2: ;backgrounds
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
 nametable3: ;backgrounds
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
 nametable4: ;backgrounds
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$25  ;;row 8
-  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $26,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
 
   .db $25,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7  ;;row 3
-  .db $D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$26  
-  
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
+  .db $D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$D7,$26
 
   .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
-  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  
-  
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24  ;;row 1
+  .db $24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24,$24
+
 attribute:
   .db %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101
   .db %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101
@@ -1360,14 +1364,14 @@ attribute:
   .db %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101
   .db %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101
   .db %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101, %01010101
-  
+
   .org $FFFA     ;start interrupt vectors here
   .dw NMI        ;jump to NMI on vblank
-  .dw RESET      
+  .dw RESET
   .dw 0          ;turn off external interrupt IRQ
-  
-;;;;;;;;;;;;;;  
-  
+
+;;;;;;;;;;;;;;
+
   .bank 2
   .org $0000
   .incbin "sprites.chr"   ;includes 8KB graphics file
