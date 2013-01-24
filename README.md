@@ -1,9 +1,14 @@
 Pong clone for the NES written in 6502 assembly.
 
-Written by Donagh Hatton
-donaghhatton (at) gmail.com
+Written by Donagh Hatton [ donaghhatton (at) gmail.com ]
 
 Do whatever you want with this and please let me know if you found it useful!
+
+Instructions:
+compile with the nesasm compiler (linked below and included in project)
+usage: nesasm <FILENAME.asm>
+once compiled, it should run in any NES emulator
+compiled .nes file is included as well
 
 
 Thanks to the following resources for assistance with 6502
